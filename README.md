@@ -35,7 +35,7 @@ Output format (one line per log event):
 ## Notes
 
 - Implementation uses `FilterLogEvents` per group and merges results sorted by timestamp.
-- This MVP searches simple substring via `FilterPattern` equal to the provided `X-Request-Id`.
+- This MVP searches using a quoted `FilterPattern` with the provided `X-Request-Id` to ensure exact literal matching (important for IDs containing hyphens).
 - The search window is fixed to the last 24 hours.
 - If no matching events are found, the tool prints: "No logs found for the given X-Request-Id in the last 24h." and exits successfully.
 - Future enhancements could include CloudWatch Logs Insights queries, wider time-range control, concurrent fetching, richer output formats (JSON), and profile selection.

@@ -44,6 +44,12 @@ func (in *Inspector) Search(ctx context.Context, requestID string) ([]LogRecord,
     if requestID == "" {
         return nil, errors.New("empty request id")
     }
+    // CloudWatch Logs filter pattern treats special characters as token separators
+    // unless the term is quoted. Quote the requestID to match the literal sequence.
+    fp := requestID
+    if !(len(fp) >= 2 && fp[0] == '"' && fp[len(fp)-1] == '"') {
+        fp = "\"" + fp + "\""
+    }
     startMs := in.startTime.UnixMilli()
     endMs := in.endTime.UnixMilli()
 
@@ -53,7 +59,7 @@ func (in *Inspector) Search(ctx context.Context, requestID string) ([]LogRecord,
         for {
             out, err := in.client.FilterLogEvents(ctx, &cloudwatchlogs.FilterLogEventsInput{
                 LogGroupName: aws.String(g),
-                FilterPattern: aws.String(requestID),
+                FilterPattern: aws.String(fp),
                 StartTime:     aws.Int64(startMs),
                 EndTime:       aws.Int64(endMs),
                 NextToken:     next,

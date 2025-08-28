@@ -16,11 +16,16 @@ type fakeLogsClient struct {
     responses  map[string][]types.FilteredLogEvent
     errByGroup map[string]error
     calls      []string
+    patterns   map[string]string
 }
 
 func (f *fakeLogsClient) FilterLogEvents(ctx context.Context, in *cloudwatchlogs.FilterLogEventsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.FilterLogEventsOutput, error) {
     g := aws.ToString(in.LogGroupName)
     f.calls = append(f.calls, g)
+    if f.patterns == nil {
+        f.patterns = map[string]string{}
+    }
+    f.patterns[g] = aws.ToString(in.FilterPattern)
     if err := f.errByGroup[g]; err != nil {
         return nil, err
     }
@@ -90,3 +95,21 @@ func TestSearchPropagatesAPIError(t *testing.T) {
     }
 }
 
+func TestFilterPatternIsQuoted(t *testing.T) {
+    now := time.Unix(1_700_000_000, 0)
+    g := "/aws/app/one"
+    f := &fakeLogsClient{
+        responses: map[string][]types.FilteredLogEvent{
+            g: {},
+        },
+        errByGroup: map[string]error{},
+    }
+    insp := New(f, []string{g}, now.Add(-time.Hour), now)
+    req := "331ea97d-891d-4813-a5ca-e78d3f1a0713"
+    _, _ = insp.Search(context.Background(), req)
+    got := f.patterns[g]
+    want := "\"" + req + "\""
+    if got != want {
+        t.Fatalf("expected quoted filter pattern %q, got %q", want, got)
+    }
+}
