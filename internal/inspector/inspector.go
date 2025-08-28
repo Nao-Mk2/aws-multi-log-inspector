@@ -84,6 +84,17 @@ func (in *Inspector) Search(ctx context.Context, requestID string) ([]LogRecord,
         }
     }
 
-    sort.Slice(records, func(i, j int) bool { return records[i].Timestamp.Before(records[j].Timestamp) })
+    sort.Slice(records, func(i, j int) bool {
+        if records[i].Timestamp.Equal(records[j].Timestamp) {
+            if records[i].LogGroup == records[j].LogGroup {
+                if records[i].LogStream == records[j].LogStream {
+                    return records[i].Message < records[j].Message
+                }
+                return records[i].LogStream < records[j].LogStream
+            }
+            return records[i].LogGroup < records[j].LogGroup
+        }
+        return records[i].Timestamp.Before(records[j].Timestamp)
+    })
     return records, nil
 }
