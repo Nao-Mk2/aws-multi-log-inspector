@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -93,6 +95,50 @@ func main() {
 	}
 
 	for _, r := range records {
-		fmt.Printf("%s %s/%s %s\n", r.Timestamp.UTC().Format(time.RFC3339), r.LogGroup, r.LogStream, r.Message)
+		ts := r.Timestamp.UTC().Format(time.RFC3339)
+		prefix := fmt.Sprintf("%s %s/%s", ts, r.LogGroup, r.LogStream)
+		if pretty, ok := prettyIfJSON(r.Message); ok {
+			fmt.Printf("%s\n%s\n", prefix, pretty)
+		} else {
+			fmt.Printf("%s %s\n", prefix, r.Message)
+		}
 	}
+}
+
+// prettyIfJSON tries to pretty-print a JSON object/array contained in s.
+// Returns (pretty, true) if successful, otherwise ("", false).
+func prettyIfJSON(s string) (string, bool) {
+	t := strings.TrimSpace(s)
+	var v any
+	// First attempt: direct parse as object/array
+	if len(t) > 0 && (t[0] == '{' || t[0] == '[') {
+		if json.Unmarshal([]byte(t), &v) == nil {
+			// Only pretty-print maps/arrays; strings/numbers fall through
+			switch v.(type) {
+			case map[string]any, []any:
+				b, err := json.MarshalIndent(v, "", "  ")
+				if err == nil {
+					return string(b), true
+				}
+			}
+		}
+	}
+	// Second attempt: if the whole message is a quoted JSON string, unquote and retry
+	if len(t) >= 2 && t[0] == '"' && t[len(t)-1] == '"' {
+		if unq, err := strconv.Unquote(t); err == nil {
+			unqTrim := strings.TrimSpace(unq)
+			if len(unqTrim) > 0 && (unqTrim[0] == '{' || unqTrim[0] == '[') {
+				if json.Unmarshal([]byte(unqTrim), &v) == nil {
+					switch v.(type) {
+					case map[string]any, []any:
+						b, err := json.MarshalIndent(v, "", "  ")
+						if err == nil {
+							return string(b), true
+						}
+					}
+				}
+			}
+		}
+	}
+	return "", false
 }
