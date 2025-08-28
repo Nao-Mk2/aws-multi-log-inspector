@@ -1,0 +1,93 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"os"
+	"strings"
+	"time"
+
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
+
+	"multi-log-inspector/internal/inspector"
+)
+
+func usage() {
+	fmt.Fprintf(os.Stderr, "Usage: %s [--groups g1,g2] [--region us-east-1] <X-Request-Id>\n", os.Args[0])
+	fmt.Fprintln(os.Stderr, "Environment: LOG_GROUP_NAMES can provide comma-separated groups; AWS credentials from default sources.")
+	os.Exit(2)
+}
+
+func main() {
+	var groupsCSV string
+	var region string
+	var profileFlag string
+
+	if v := os.Getenv("LOG_GROUP_NAMES"); v != "" {
+		groupsCSV = v
+	}
+
+	flag.StringVar(&groupsCSV, "groups", groupsCSV, "Comma-separated CloudWatch log group names")
+	flag.StringVar(&region, "region", os.Getenv("AWS_REGION"), "AWS region (optional; falls back to AWS defaults)")
+	flag.StringVar(&profileFlag, "profile", "", "AWS shared config profile (or set AWS_PROFILE)")
+	flag.Parse()
+
+	if flag.NArg() < 1 {
+		usage()
+	}
+	requestID := flag.Arg(0)
+
+	var groups []string
+	if groupsCSV != "" {
+		for _, g := range strings.Split(groupsCSV, ",") {
+			g = strings.TrimSpace(g)
+			if g != "" {
+				groups = append(groups, g)
+			}
+		}
+	}
+	if len(groups) == 0 {
+		fmt.Fprintln(os.Stderr, "error: no log groups provided (use --groups or LOG_GROUP_NAMES)")
+		os.Exit(1)
+	}
+
+	// Fixed search window: last 24 hours
+	end := time.Now()
+	start := end.Add(-24 * time.Hour)
+
+	// Resolve profile: --profile > AWS_PROFILE; otherwise error
+	resolvedProfile := profileFlag
+	if resolvedProfile == "" {
+		resolvedProfile = os.Getenv("AWS_PROFILE")
+	}
+	if resolvedProfile == "" {
+		fmt.Fprintln(os.Stderr, "error: AWS profile required (use --profile or set AWS_PROFILE)")
+		os.Exit(1)
+	}
+
+	ctx := context.Background()
+	var cfgOpts []func(*config.LoadOptions) error
+	if region != "" {
+		cfgOpts = append(cfgOpts, config.WithRegion(region))
+	}
+	cfgOpts = append(cfgOpts, config.WithSharedConfigProfile(resolvedProfile))
+	cfg, err := config.LoadDefaultConfig(ctx, cfgOpts...)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to load AWS config: %v\n", err)
+		os.Exit(1)
+	}
+	cw := cloudwatchlogs.NewFromConfig(cfg)
+
+	insp := inspector.New(cw, groups, start, end)
+	records, err := insp.Search(ctx, requestID)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "search error: %v\n", err)
+		os.Exit(1)
+	}
+
+	for _, r := range records {
+		fmt.Printf("%s %s/%s %s\n", r.Timestamp.UTC().Format(time.RFC3339), r.LogGroup, r.LogStream, r.Message)
+	}
+}
