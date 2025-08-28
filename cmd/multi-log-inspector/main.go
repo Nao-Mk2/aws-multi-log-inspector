@@ -87,6 +87,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if len(records) == 0 {
+		fmt.Printf("No logs found for the given X-Request-Id `%s` in the last 24h.\n", requestID)
+		return
+	}
+
 	for _, r := range records {
 		fmt.Printf("%s %s/%s %s\n", r.Timestamp.UTC().Format(time.RFC3339), r.LogGroup, r.LogStream, r.Message)
 	}
