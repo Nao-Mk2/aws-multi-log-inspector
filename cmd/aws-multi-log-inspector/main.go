@@ -10,9 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
-
+	"aws-multi-log-inspector/internal/aws"
 	"aws-multi-log-inspector/internal/inspector"
 )
 
@@ -70,17 +68,11 @@ func main() {
 	}
 
 	ctx := context.Background()
-	var cfgOpts []func(*config.LoadOptions) error
-	if region != "" {
-		cfgOpts = append(cfgOpts, config.WithRegion(region))
-	}
-	cfgOpts = append(cfgOpts, config.WithSharedConfigProfile(resolvedProfile))
-	cfg, err := config.LoadDefaultConfig(ctx, cfgOpts...)
+	cw, err := aws.NewCloudWatchClient(ctx, region, resolvedProfile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to load AWS config: %v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to create CloudWatch client: %v\n", err)
 		os.Exit(1)
 	}
-	cw := cloudwatchlogs.NewFromConfig(cfg)
 
 	insp := inspector.New(cw, groups, start, end)
 	records, err := insp.Search(ctx, requestID)
