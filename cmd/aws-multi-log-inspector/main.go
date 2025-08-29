@@ -37,7 +37,7 @@ func main() {
 	if flag.NArg() < 1 {
 		usage()
 	}
-	requestID := flag.Arg(0)
+	searchStr := flag.Arg(0)
 
 	var groups []string
 	if groupsCSV != "" {
@@ -75,14 +75,14 @@ func main() {
 	}
 
 	insp := inspector.New(cw, groups, start, end)
-	records, err := insp.Search(ctx, requestID)
+	records, err := insp.Search(ctx, searchStr)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "search error: %v\n", err)
 		os.Exit(1)
 	}
 
 	if len(records) == 0 {
-		fmt.Printf("No logs found for the given X-Request-Id `%s` in the last 24h.\n", requestID)
+		fmt.Printf("No logs found for the given string `%s` in the last 24h.\n", searchStr)
 		return
 	}
 
