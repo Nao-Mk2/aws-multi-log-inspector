@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 
-	"multi-log-inspector/internal/inspector"
+	"aws-multi-log-inspector/internal/inspector"
 )
 
 func usage() {

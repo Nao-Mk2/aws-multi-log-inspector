@@ -1,8 +1,6 @@
-# multi-log-inspector (MVP)
+# aws-multi-log-inspector
 
 Console app to fetch AWS CloudWatch Logs entries across multiple log groups tied to a given `X-Request-Id` and print them to stdout.
-
-This is a small, TDD-built PoC with minimal configuration.
 
 ## Requirements
 
@@ -13,13 +11,13 @@ This is a small, TDD-built PoC with minimal configuration.
 ## Install
 
 ```
-go build ./cmd/multi-log-inspector
+go build ./cmd/aws-multi-log-inspector
 ```
 
 ## Usage
 
 ```
-multi-log-inspector [--groups g1,g2] [--region ap-northeast-1] --profile your-profile <X-Request-Id>
+aws-multi-log-inspector [--groups g1,g2] [--region ap-northeast-1] --profile your-profile <X-Request-Id>
 ```
 
 - `--groups`: Comma-separated CloudWatch Log Group names. Alternatively set env `LOG_GROUP_NAMES`.

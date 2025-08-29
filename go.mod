@@ -1,4 +1,4 @@
-module multi-log-inspector
+module aws-multi-log-inspector
 
 go 1.25.0
 
