@@ -6,6 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.38.3
 	github.com/aws/aws-sdk-go-v2/config v1.31.6
 	github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs v1.57.2
+	github.com/jmespath/go-jmespath v0.4.0
 )
 
 require (

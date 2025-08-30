@@ -34,12 +34,7 @@ func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]model.
 	if filterPattern == "" {
 		return nil, errors.New("empty filter pattern")
 	}
-	// CloudWatch Logs filter pattern treats special characters as token separators
-	// unless the term is quoted. Quote the string to match the literal sequence.
-	fp := filterPattern
-	if !(len(fp) >= 2 && fp[0] == '"' && fp[len(fp)-1] == '"') {
-		fp = "\"" + fp + "\""
-	}
+
 	startMs := in.startTime.UnixMilli()
 	endMs := in.endTime.UnixMilli()
 
@@ -61,7 +56,7 @@ func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]model.
 		go func() {
 			defer wg.Done()
 			for group := range groupChan {
-				records, err := in.client.SearchGroup(ctx, group, fp, startMs, endMs)
+				records, err := in.client.SearchGroup(ctx, group, filterPattern, startMs, endMs)
 				if err != nil {
 					errorChan <- err
 					return

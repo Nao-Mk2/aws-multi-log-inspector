@@ -88,7 +88,7 @@ func TestInspectorSearch(t *testing.T) {
 			wantErr:   true,
 		},
 		{
-			name:   "quotes filter and aggregates sorted",
+			name:   "passes filter as-is and aggregates sorted",
 			groups: []string{g1, g2},
 			filter: "hello",
 			setupMock: func() *mockRetriever {
@@ -101,7 +101,7 @@ func TestInspectorSearch(t *testing.T) {
 			},
 			// Expected overall order by timestamp, then group, stream, message
 			wantRecords: []model.LogRecord{r1, r2, r4, r3},
-			wantFilter:  "\"hello\"",
+			wantFilter:  "hello",
 		},
 		{
 			name:        "already quoted filter unchanged",
