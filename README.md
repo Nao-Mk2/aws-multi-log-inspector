@@ -17,12 +17,13 @@ go build ./cmd/aws-multi-log-inspector
 ## Usage
 
 ```
-aws-multi-log-inspector [--groups g1,g2] [--region ap-northeast-1] --profile your-profile <X-Request-Id>
+aws-multi-log-inspector --filter-pattern <pattern> [--groups g1,g2] [--region ap-northeast-1] --profile your-profile
 ```
 
 - `--groups`: Comma-separated CloudWatch Log Group names. Alternatively set env `LOG_GROUP_NAMES`.
 - `--region`: AWS region (optional). Falls back to AWS SDK defaults if omitted.
 - `--profile`: AWS shared config profile. If omitted, the app uses env `AWS_PROFILE`. One of them is required.
+- `--filter-pattern`: Search pattern (required). For more information, see [Filter and Pattern Syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html).
 
 Output format (one line per log event):
 
@@ -36,4 +37,4 @@ Output format (one line per log event):
 - The search window is fixed to the last 24 hours.
 - Output events are sorted chronologically (ascending by timestamp).
 - If a log message is valid JSON (object/array), it is pretty-printed with indentation. Otherwise, the raw string is printed.
-- If no matching events are found, the tool prints: "No logs found for the given X-Request-Id in the last 24h." and exits successfully.
+- If no matching events are found, the tool prints: "No logs found for the given pattern in the last 24h." and exits successfully.

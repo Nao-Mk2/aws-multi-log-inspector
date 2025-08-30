@@ -15,7 +15,7 @@ import (
 )
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "Usage: %s [--groups g1,g2] [--region us-east-1] <X-Request-Id>\n", os.Args[0])
+	fmt.Fprintln(os.Stderr, "Usage: aws-multi-log-inspector --filter-pattern <pattern> [--groups g1,g2] [--region us-east-1]")
 	fmt.Fprintln(os.Stderr, "Environment: LOG_GROUP_NAMES can provide comma-separated groups; AWS credentials from default sources.")
 	os.Exit(2)
 }
@@ -24,6 +24,7 @@ func main() {
 	var groupsCSV string
 	var region string
 	var profileFlag string
+	var filterPattern string
 
 	if v := os.Getenv("LOG_GROUP_NAMES"); v != "" {
 		groupsCSV = v
@@ -32,12 +33,13 @@ func main() {
 	flag.StringVar(&groupsCSV, "groups", groupsCSV, "Comma-separated CloudWatch log group names")
 	flag.StringVar(&region, "region", os.Getenv("AWS_REGION"), "AWS region (optional; falls back to AWS defaults)")
 	flag.StringVar(&profileFlag, "profile", "", "AWS shared config profile (or set AWS_PROFILE)")
+	flag.StringVar(&filterPattern, "filter-pattern", "", "CloudWatch Logs filter pattern (required)")
 	flag.Parse()
 
-	if flag.NArg() < 1 {
+	// --filter-pattern is required
+	if filterPattern == "" {
 		usage()
 	}
-	searchStr := flag.Arg(0)
 
 	var groups []string
 	if groupsCSV != "" {
@@ -75,14 +77,14 @@ func main() {
 	}
 
 	insp := inspector.New(cw, groups, start, end)
-	records, err := insp.Search(ctx, searchStr)
+	records, err := insp.Search(ctx, filterPattern)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "search error: %v\n", err)
 		os.Exit(1)
 	}
 
 	if len(records) == 0 {
-		fmt.Printf("No logs found for the given string `%s` in the last 24h.\n", searchStr)
+		fmt.Printf("No logs found for the given pattern `%s` in the last 24h.\n", filterPattern)
 		return
 	}
 

@@ -37,17 +37,17 @@ func New(client LogsClient, groups []string, startTime, endTime time.Time) *Insp
 	return &Inspector{client: client, groups: groups, startTime: startTime, endTime: endTime}
 }
 
-// Search finds logs containing the given requestID across configured groups.
-func (in *Inspector) Search(ctx context.Context, requestID string) ([]LogRecord, error) {
+// Search finds logs matching the given filter pattern across configured groups.
+func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]LogRecord, error) {
 	if len(in.groups) == 0 {
 		return nil, errors.New("no log groups configured")
 	}
-	if requestID == "" {
-		return nil, errors.New("empty request id")
+	if filterPattern == "" {
+		return nil, errors.New("empty filter pattern")
 	}
 	// CloudWatch Logs filter pattern treats special characters as token separators
-	// unless the term is quoted. Quote the requestID to match the literal sequence.
-	fp := requestID
+	// unless the term is quoted. Quote the string to match the literal sequence.
+	fp := filterPattern
 	if !(len(fp) >= 2 && fp[0] == '"' && fp[len(fp)-1] == '"') {
 		fp = "\"" + fp + "\""
 	}
