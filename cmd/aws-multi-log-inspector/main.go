@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"aws-multi-log-inspector/internal/aws"
+	"aws-multi-log-inspector/internal/client"
 	"aws-multi-log-inspector/internal/inspector"
 )
 
@@ -68,7 +68,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	cw, err := aws.NewCloudWatchClient(ctx, region, resolvedProfile)
+	cw, err := client.NewCloudWatchClient(ctx, region, resolvedProfile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create CloudWatch client: %v\n", err)
 		os.Exit(1)
