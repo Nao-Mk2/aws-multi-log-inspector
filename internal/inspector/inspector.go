@@ -1,44 +1,33 @@
 package inspector
 
 import (
+	"aws-multi-log-inspector/internal/model"
 	"context"
 	"errors"
 	"sort"
 	"sync"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
 
-// LogsClient is the subset of CloudWatch Logs API we use.
-type LogsClient interface {
-	FilterLogEvents(ctx context.Context, params *cloudwatchlogs.FilterLogEventsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.FilterLogEventsOutput, error)
-}
-
-// LogRecord represents a single log entry matched across groups.
-type LogRecord struct {
-	Timestamp time.Time
-	LogGroup  string
-	LogStream string
-	Message   string
+type CloudWatchLogsRetriever interface {
+	SearchGroup(ctx context.Context, group, filterPattern string, startMs, endMs int64) ([]model.LogRecord, error)
 }
 
 // Inspector searches CloudWatch Logs across multiple groups.
 type Inspector struct {
-	client    LogsClient
+	client    CloudWatchLogsRetriever
 	groups    []string
 	startTime time.Time
 	endTime   time.Time
 }
 
 // New creates an Inspector.
-func New(client LogsClient, groups []string, startTime, endTime time.Time) *Inspector {
+func New(client CloudWatchLogsRetriever, groups []string, startTime, endTime time.Time) *Inspector {
 	return &Inspector{client: client, groups: groups, startTime: startTime, endTime: endTime}
 }
 
 // Search finds logs matching the given filter pattern across configured groups.
-func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]LogRecord, error) {
+func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]model.LogRecord, error) {
 	if len(in.groups) == 0 {
 		return nil, errors.New("no log groups configured")
 	}
@@ -56,7 +45,7 @@ func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]LogRec
 
 	const numWorkers = 4
 	groupChan := make(chan string, len(in.groups))
-	resultChan := make(chan []LogRecord, len(in.groups))
+	resultChan := make(chan []model.LogRecord, len(in.groups))
 	errorChan := make(chan error, len(in.groups))
 
 	// Send all groups to the channel
@@ -72,7 +61,7 @@ func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]LogRec
 		go func() {
 			defer wg.Done()
 			for group := range groupChan {
-				records, err := in.searchGroup(ctx, group, fp, startMs, endMs)
+				records, err := in.client.SearchGroup(ctx, group, fp, startMs, endMs)
 				if err != nil {
 					errorChan <- err
 					return
@@ -90,7 +79,7 @@ func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]LogRec
 	}()
 
 	// Collect results
-	var allRecords []LogRecord
+	var allRecords []model.LogRecord
 	for {
 		select {
 		case err := <-errorChan:
@@ -128,37 +117,4 @@ done:
 		return allRecords[i].Timestamp.Before(allRecords[j].Timestamp)
 	})
 	return allRecords, nil
-}
-
-// searchGroup searches logs in a single log group
-func (in *Inspector) searchGroup(ctx context.Context, group, filterPattern string, startMs, endMs int64) ([]LogRecord, error) {
-	var records []LogRecord
-	var next *string
-	for {
-		out, err := in.client.FilterLogEvents(ctx, &cloudwatchlogs.FilterLogEventsInput{
-			LogGroupName:  aws.String(group),
-			FilterPattern: aws.String(filterPattern),
-			StartTime:     aws.Int64(startMs),
-			EndTime:       aws.Int64(endMs),
-			NextToken:     next,
-			Interleaved:   aws.Bool(true),
-		})
-		if err != nil {
-			return nil, err
-		}
-		for _, e := range out.Events {
-			ts := time.Unix(0, aws.ToInt64(e.Timestamp)*int64(time.Millisecond))
-			records = append(records, LogRecord{
-				Timestamp: ts,
-				LogGroup:  group,
-				LogStream: aws.ToString(e.LogStreamName),
-				Message:   aws.ToString(e.Message),
-			})
-		}
-		if out.NextToken == nil || (next != nil && aws.ToString(out.NextToken) == aws.ToString(next)) {
-			break
-		}
-		next = out.NextToken
-	}
-	return records, nil
 }
