@@ -78,6 +78,11 @@ func BuildNextFilter(jmes string, extracted string) (string, error) {
 		// Fallback: treat as literal pattern
 		return jmes, nil
 	}
+	// If evaluation result is nil/empty, treat as an error to avoid sending
+	// a meaningless "null" pattern to CloudWatch Logs.
+	if isEmpty(out) {
+		return "", fmt.Errorf("next-filter evaluated to null/empty")
+	}
 	switch v := out.(type) {
 	case string:
 		return v, nil
