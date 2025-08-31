@@ -33,7 +33,7 @@ aws-multi-log-inspector \
 - `--start`/`--end`: Override the time window in RFC3339. If both omitted, last 24h is used. If only `--start` is set, the end is "now". If only `--end` is set, the start is `end-24h`.
 - `--extract`: Extract a value from the first search results using JMESPath: `name=path`. For non-JSON messages, the raw text is available as `message`.
 - `--next-filter`: Build a second filter using JMESPath evaluated against `{ "value": <extracted> }`, or treat the argument as a literal if not valid JMESPath. You can also embed the extracted value via `{{name}}`, which will be JSON-quoted safely before evaluation.
-- `--pretty`: Pretty-print JSON output for the second search results.
+- `--pretty`: Pretty-print JSON. For the first search, JSON messages are expanded on the next line. For the second search, results are output as indented JSON.
 
 Output format (first search; one line per log event):
 
@@ -41,14 +41,14 @@ Output format (first search; one line per log event):
 <RFC3339 timestamp> <log-group>/<log-stream> <message>
 ```
 
-If a message is a JSON object/array, it is pretty-printed on the next line.
+If `--pretty` is set and a message is a JSON object/array, it is pretty-printed on the next line.
 
 ## Notes
 
 - Implementation uses `FilterLogEvents` per group and merges results sorted by timestamp.
 - The default search window is the last 24 hours; it can be overridden with `--start`/`--end`.
-- Output events are sorted chronologically (ascending by timestamp).
-- If a log message is valid JSON (object/array), it is pretty-printed with indentation. Otherwise, the raw string is printed.
+ - Output events are sorted chronologically (ascending by timestamp).
+ - With `--pretty`, JSON messages in the first search are pretty-printed; otherwise they are shown as raw strings.
 - If no matching events are found, the tool prints: `No logs found for the given pattern "<pattern>" in the last 24h.` and exits successfully.
 
 ## Two-Phase Search (Extract and Re-search)

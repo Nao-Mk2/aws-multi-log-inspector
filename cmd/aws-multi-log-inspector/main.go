@@ -69,7 +69,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// If --extract is not used, keep the original behavior
+	// If --extract is not used, print first search results
 	if opts.Extract == "" {
 		if len(records) == 0 {
 			fmt.Printf("No logs found for the given pattern `%s` in the last 24h.\n", opts.FilterPattern)
@@ -78,11 +78,13 @@ func main() {
 		for _, r := range records {
 			ts := r.Timestamp.UTC().Format(time.RFC3339)
 			prefix := fmt.Sprintf("%s %s/%s", ts, r.LogGroup, r.LogStream)
-			if pretty, ok := prettyIfJSON(r.Message); ok {
-				fmt.Printf("%s\n%s\n", prefix, pretty)
-			} else {
-				fmt.Printf("%s %s\n", prefix, r.Message)
+			if opts.PrettyJSON {
+				if pretty, ok := prettyIfJSON(r.Message); ok {
+					fmt.Printf("%s\n%s\n", prefix, pretty)
+					continue
+				}
 			}
+			fmt.Printf("%s %s\n", prefix, r.Message)
 		}
 		return
 	}
