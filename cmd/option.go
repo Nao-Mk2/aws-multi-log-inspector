@@ -17,6 +17,8 @@ type Options struct {
 	Extract       string
 	NextFilter    string
 	PrettyJSON    bool
+	StartRFC3339  string
+	EndRFC3339    string
 }
 
 // Validate checks relationships and required flags.
@@ -60,6 +62,8 @@ func CollectOptions() *Options {
 	var extractFlag string
 	var nextFilterFlag string
 	var prettyJSON bool
+	var startStr string
+	var endStr string
 
 	if v := os.Getenv("LOG_GROUP_NAMES"); v != "" {
 		groupsCSV = v
@@ -72,6 +76,8 @@ func CollectOptions() *Options {
 	flag.StringVar(&extractFlag, "extract", "", "JMESPath extract in name=path form (single occurrence)")
 	flag.StringVar(&nextFilterFlag, "next-filter", "", "JMESPath to build second filter; requires --extract")
 	flag.BoolVar(&prettyJSON, "pretty", false, "Pretty-print JSON output for --next-filter results")
+	flag.StringVar(&startStr, "start", "", "Start time RFC3339 (e.g., 2025-08-30T15:04:05Z)")
+	flag.StringVar(&endStr, "end", "", "End time RFC3339 (e.g., 2025-08-31T15:04:05Z)")
 	flag.Parse()
 
 	return &Options{
@@ -82,6 +88,8 @@ func CollectOptions() *Options {
 		Extract:       extractFlag,
 		NextFilter:    nextFilterFlag,
 		PrettyJSON:    prettyJSON,
+		StartRFC3339:  startStr,
+		EndRFC3339:    endStr,
 	}
 }
 
@@ -114,6 +122,50 @@ func DefaultTimeWindow() (time.Time, time.Time) {
 	start := end.Add(-24 * time.Hour)
 	return start, end
 }
+
+// ResolveTimeWindow computes the [start,end] from optional RFC3339 strings.
+// Rules:
+// - both empty: last 24h ending at now
+// - only start: end = now
+// - only end: start = end - 24h
+// - both set: validate start <= end
+func ResolveTimeWindow(startStr, endStr string, now time.Time) (time.Time, time.Time, error) {
+	if startStr == "" && endStr == "" {
+		// Mirror DefaultTimeWindow but based on provided now
+		return now.Add(-24 * time.Hour), now, nil
+	}
+	var start time.Time
+	var end time.Time
+	var err error
+	if startStr != "" {
+		start, err = time.Parse(time.RFC3339, startStr)
+		if err != nil {
+			return time.Time{}, time.Time{}, err
+		}
+	}
+	if endStr != "" {
+		end, err = time.Parse(time.RFC3339, endStr)
+		if err != nil {
+			return time.Time{}, time.Time{}, err
+		}
+	}
+	if startStr != "" && endStr == "" {
+		end = now
+	} else if startStr == "" && endStr != "" {
+		start = end.Add(-24 * time.Hour)
+	}
+	if start.After(end) {
+		return time.Time{}, time.Time{}, ErrStartAfterEnd
+	}
+	return start, end, nil
+}
+
+// ErrStartAfterEnd represents an invalid time window where start > end.
+var ErrStartAfterEnd = &timeRangeError{"start is after end"}
+
+type timeRangeError struct{ s string }
+
+func (e *timeRangeError) Error() string { return e.s }
 
 // CountFlagOccurrences counts how many times a long flag (e.g., "--extract") appears
 // considering both "--flag value" and "--flag=value" forms.

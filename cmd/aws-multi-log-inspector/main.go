@@ -18,7 +18,7 @@ import (
 )
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "Usage: aws-multi-log-inspector --filter-pattern <pattern> [--groups g1,g2] [--region us-east-1]")
+	fmt.Fprintln(os.Stderr, "Usage: aws-multi-log-inspector --filter-pattern <pattern> [--groups g1,g2] [--region us-east-1] [--start RFC3339] [--end RFC3339]")
 	fmt.Fprintln(os.Stderr, "Environment: LOG_GROUP_NAMES can provide comma-separated groups; AWS credentials from default sources.")
 	os.Exit(2)
 }
@@ -41,8 +41,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Fixed search window: last 24 hours
-	start, end := cmd.DefaultTimeWindow()
+	// Resolve search window: RFC3339 flags or last 24h by default
+	start, end, err := cmd.ResolveTimeWindow(opts.StartRFC3339, opts.EndRFC3339, time.Now())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "invalid time window: %v\n", err)
+		os.Exit(2)
+	}
 
 	// Resolve profile: --profile > AWS_PROFILE; otherwise error
 	resolvedProfile := cmd.ResolveProfile(opts.Profile)

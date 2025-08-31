@@ -106,6 +106,42 @@ func TestDefaultTimeWindow(t *testing.T) {
 	}
 }
 
+func TestResolveTimeWindow(t *testing.T) {
+	fixedNow := time.Date(2025, 8, 31, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name      string
+		startStr  string
+		endStr    string
+		wantStart time.Time
+		wantEnd   time.Time
+		wantErr   bool
+	}{
+		{"both-empty", "", "", fixedNow.Add(-24 * time.Hour), fixedNow, false},
+		{"only-start", "2025-08-30T10:00:00Z", "", time.Date(2025, 8, 30, 10, 0, 0, 0, time.UTC), fixedNow, false},
+		{"only-end", "", "2025-08-31T10:00:00Z", time.Date(2025, 8, 30, 10, 0, 0, 0, time.UTC), time.Date(2025, 8, 31, 10, 0, 0, 0, time.UTC), false},
+		{"both", "2025-08-30T09:00:00Z", "2025-08-31T09:30:00Z", time.Date(2025, 8, 30, 9, 0, 0, 0, time.UTC), time.Date(2025, 8, 31, 9, 30, 0, 0, time.UTC), false},
+		{"start-after-end", "2025-08-31T12:01:00Z", "2025-08-31T12:00:00Z", time.Time{}, time.Time{}, true},
+		{"bad-format", "not-time", "", time.Time{}, time.Time{}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotStart, gotEnd, err := ResolveTimeWindow(tt.startStr, tt.endStr, fixedNow)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("expected error, got none: start=%v end=%v", gotStart, gotEnd)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !gotStart.Equal(tt.wantStart) || !gotEnd.Equal(tt.wantEnd) {
+				t.Fatalf("window mismatch: got [%v,%v], want [%v,%v]", gotStart, gotEnd, tt.wantStart, tt.wantEnd)
+			}
+		})
+	}
+}
+
 func TestCountFlagOccurrences(t *testing.T) {
 	tests := []struct {
 		name string
