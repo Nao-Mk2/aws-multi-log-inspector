@@ -75,7 +75,7 @@ func CollectOptions() *Options {
 	flag.StringVar(&filterPattern, "filter-pattern", "", "CloudWatch Logs filter pattern (required)")
 	flag.StringVar(&extractFlag, "extract", "", "JMESPath extract in name=path form (single occurrence)")
 	flag.StringVar(&nextFilterFlag, "next-filter", "", "JMESPath to build second filter; requires --extract")
-	flag.BoolVar(&prettyJSON, "pretty", false, "Pretty-print JSON output for --next-filter results")
+	flag.BoolVar(&prettyJSON, "pretty", false, "Pretty-print JSON output (applies to first and second search results)")
 	flag.StringVar(&startStr, "start", "", "Start time RFC3339 (e.g., 2025-08-30T15:04:05Z)")
 	flag.StringVar(&endStr, "end", "", "End time RFC3339 (e.g., 2025-08-31T15:04:05Z)")
 	flag.Parse()

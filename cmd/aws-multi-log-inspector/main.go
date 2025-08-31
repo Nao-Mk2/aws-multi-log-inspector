@@ -68,33 +68,33 @@ func main() {
 		fmt.Fprintf(os.Stderr, "search error: %v\n", err)
 		os.Exit(1)
 	}
+	if len(records) == 0 {
+		fmt.Printf("No logs found for the given pattern `%s` in the last 24h.\n", opts.FilterPattern)
+		return
+	}
 
 	// If --extract is not used, print first search results
 	if opts.Extract == "" {
-		if len(records) == 0 {
-			fmt.Printf("No logs found for the given pattern `%s` in the last 24h.\n", opts.FilterPattern)
+		// Align --pretty output format with --next-filter: emit JSON array
+		if opts.PrettyJSON {
+			b, err := json.MarshalIndent(records, "", "  ")
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "encode error: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(string(b))
 			return
 		}
+
 		for _, r := range records {
 			ts := r.Timestamp.UTC().Format(time.RFC3339)
 			prefix := fmt.Sprintf("%s %s/%s", ts, r.LogGroup, r.LogStream)
-			if opts.PrettyJSON {
-				if pretty, ok := prettyIfJSON(r.Message); ok {
-					fmt.Printf("%s\n%s\n", prefix, pretty)
-					continue
-				}
-			}
 			fmt.Printf("%s %s\n", prefix, r.Message)
 		}
 		return
 	}
 
 	// Extract flow
-	if len(records) == 0 {
-		fmt.Fprintln(os.Stderr, "no logs found in initial search (24h)")
-		os.Exit(3)
-	}
-
 	// Parse extract flag: name=path
 	extractName, extractPath, err := opts.ParseExtractSpec()
 	if err != nil {
