@@ -7,14 +7,14 @@ import (
 	"os"
 	"time"
 
-	"aws-multi-log-inspector/internal/client"
-	"aws-multi-log-inspector/internal/inspector"
-	"aws-multi-log-inspector/internal/util"
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/client"
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/inspector"
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/util"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 
-	cmd "aws-multi-log-inspector/cmd"
+	"github.com/Nao-Mk2/aws-multi-log-inspector/cmd"
 )
 
 func usage() {

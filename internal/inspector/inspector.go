@@ -1,12 +1,13 @@
 package inspector
 
 import (
-	"aws-multi-log-inspector/internal/model"
 	"context"
 	"errors"
 	"sort"
 	"sync"
 	"time"
+
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/model"
 )
 
 type CloudWatchLogsRetriever interface {

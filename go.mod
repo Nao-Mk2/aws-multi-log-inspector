@@ -1,4 +1,4 @@
-module aws-multi-log-inspector
+module github.com/Nao-Mk2/aws-multi-log-inspector
 
 go 1.25.0
 

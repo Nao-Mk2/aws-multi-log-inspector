@@ -1,10 +1,11 @@
 package client
 
 import (
-	"aws-multi-log-inspector/internal/model"
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/model"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"

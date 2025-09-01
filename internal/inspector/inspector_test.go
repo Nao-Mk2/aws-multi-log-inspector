@@ -1,13 +1,14 @@
 package inspector_test
 
 import (
-	"aws-multi-log-inspector/internal/inspector"
-	"aws-multi-log-inspector/internal/model"
 	"context"
 	"errors"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/inspector"
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/model"
 )
 
 type searchCall struct {

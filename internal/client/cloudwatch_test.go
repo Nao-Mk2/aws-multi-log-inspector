@@ -1,14 +1,15 @@
 package client_test
 
 import (
-	"aws-multi-log-inspector/internal/client"
-	"aws-multi-log-inspector/internal/model"
 	"context"
 	"errors"
 	"reflect"
 	"testing"
 	"time"
 	"unsafe"
+
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/client"
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/model"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"

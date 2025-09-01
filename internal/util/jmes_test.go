@@ -3,7 +3,7 @@ package util_test
 import (
 	"testing"
 
-	util "aws-multi-log-inspector/internal/util"
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/util"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs/types"
 )
 
