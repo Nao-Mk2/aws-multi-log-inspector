@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 )
 
@@ -21,26 +22,61 @@ type CloudWatchClient struct {
 	client LogsAPI
 }
 
-// NewCloudWatchClient loads AWS configuration using the provided region and
-// shared profile, and returns a CloudWatch Logs client. region may be empty
-// to use default resolution. profile is required and should match the shared
-// config profile name.
-func NewCloudWatchClient(ctx context.Context, region, profile string) (*CloudWatchClient, error) {
-	if profile == "" {
-		return nil, fmt.Errorf("profile required")
+type CloudWatchOption func(*cloudWatchCfg)
+
+type cloudWatchCfg struct {
+	region      string
+	profile     string
+	staticCreds *credentials.StaticCredentialsProvider
+}
+
+// WithRegion sets an explicit AWS region.
+func WithRegion(region string) CloudWatchOption {
+	return func(c *cloudWatchCfg) { c.region = region }
+}
+
+// WithProfile picks credentials/config from a shared config profile.
+func WithProfile(profile string) CloudWatchOption {
+	return func(c *cloudWatchCfg) { c.profile = profile }
+}
+
+// WithStaticCredentials uses the provided static credentials.
+func WithStaticCredentials(accessKey, secretKey, sessionToken string) CloudWatchOption {
+	prov := credentials.NewStaticCredentialsProvider(accessKey, secretKey, sessionToken)
+	return func(c *cloudWatchCfg) { c.staticCreds = &prov }
+}
+
+// NewCloudWatchClient builds a CloudWatch Logs client using functional options.
+// Precedence:
+//   - If profile is set via WithProfile, use it with optional WithRegion.
+//   - Else if static credentials are provided via WithStaticCredentials, use them with optional WithRegion.
+//   - Else use the default AWS config chain (env/instance/shared), honoring WithRegion if present.
+func NewCloudWatchClient(ctx context.Context, opts ...CloudWatchOption) (*CloudWatchClient, error) {
+	// Defaults
+	cfgState := &cloudWatchCfg{}
+	for _, o := range opts {
+		o(cfgState)
 	}
-	var cfgOpts []func(*config.LoadOptions) error
-	if region != "" {
-		cfgOpts = append(cfgOpts, config.WithRegion(region))
+
+	var loadOpts []func(*config.LoadOptions) error
+	if cfgState.region != "" {
+		loadOpts = append(loadOpts, config.WithRegion(cfgState.region))
 	}
-	cfgOpts = append(cfgOpts, config.WithSharedConfigProfile(profile))
-	cfg, err := config.LoadDefaultConfig(ctx, cfgOpts...)
+
+	switch {
+	case cfgState.profile != "":
+		loadOpts = append(loadOpts, config.WithSharedConfigProfile(cfgState.profile))
+	case cfgState.staticCreds != nil:
+		loadOpts = append(loadOpts, config.WithCredentialsProvider(*cfgState.staticCreds))
+	default:
+		// default chain only, region already appended if provided
+	}
+
+	cfg, err := config.LoadDefaultConfig(ctx, loadOpts...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load AWS config: %w", err)
 	}
-	return &CloudWatchClient{
-		client: cloudwatchlogs.NewFromConfig(cfg),
-	}, nil
+	return &CloudWatchClient{client: cloudwatchlogs.NewFromConfig(cfg)}, nil
 }
 
 // SearchGroup searches logs in a single log group

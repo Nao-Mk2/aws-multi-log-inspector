@@ -1,6 +1,6 @@
 # aws-multi-log-inspector
 
-Console app to fetch AWS CloudWatch Logs entries across multiple log groups tied to a given string and print them to stdout.
+Console app to fetch AWS CloudWatch Logs entries across multiple log groups matching a CloudWatch Logs filter pattern and print them to stdout.
 
 ## Requirements
 
@@ -21,14 +21,14 @@ aws-multi-log-inspector \
   --filter-pattern <pattern> \
   [--groups g1,g2] \
   [--region ap-northeast-1] \
-  --profile your-profile \
+  [--profile your-profile] \
   [--start RFC3339] [--end RFC3339] \
   [--extract name=jmespath --next-filter jmes-or-literal] [--pretty]
 ```
 
 - `--groups`: Comma-separated CloudWatch Log Group names. Alternatively set env `LOG_GROUP_NAMES`.
 - `--region`: AWS region (optional). Falls back to AWS SDK defaults if omitted.
-- `--profile`: AWS shared config profile. If omitted, the app uses env `AWS_PROFILE`. One of them is required.
+- `--profile`: AWS shared config profile (optional). If omitted, the app first uses env `AWS_PROFILE` when present; if that still doesn’t resolve, it falls back to environment credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, optional `AWS_SESSION_TOKEN`) and region from `--region` or `AWS_REGION`.
 - `--filter-pattern`: Search pattern (required). See [Filter and Pattern Syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html).
 - `--start`/`--end`: Override the time window in RFC3339. If both omitted, last 24h is used. If only `--start` is set, the end is "now". If only `--end` is set, the start is `end-24h`.
 - `--extract`: Extract a value from the first search results using JMESPath: `name=path`. For non-JSON messages, the raw text is available as `message`.
@@ -41,15 +41,17 @@ Output format (first search; one line per log event when not using `--pretty`):
 <RFC3339 timestamp> <log-group>/<log-stream> <message>
 ```
 
-If `--pretty` is set, the first search results are output as an indented JSON array (same as the second search).
+If `--pretty` is set and there are results, the first search results are output as an indented JSON array (same as the second search).
 
 ## Notes
 
-- Implementation uses `FilterLogEvents` per group and merges results sorted by timestamp.
+- Implementation uses `FilterLogEvents` per group and merges results, then sorts chronologically (ascending by timestamp).
+- Credentials resolution order when creating the client:
+  1) Shared config/profile (with `--profile` or `AWS_PROFILE`), honoring `--region` if provided.
+  2) Environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, optional `AWS_SESSION_TOKEN`; region via `--region` or `AWS_REGION`.
+  3) Otherwise, the AWS SDK’s default resolution chain applies.
 - The default search window is the last 24 hours; it can be overridden with `--start`/`--end`.
- - Output events are sorted chronologically (ascending by timestamp).
- - With `--pretty`, JSON messages in the first search are pretty-printed; otherwise they are shown as raw strings.
-- If no matching events are found and `--pretty` is not set, the tool prints: `No logs found for the given pattern "<pattern>" in the last 24h.` and exits successfully. With `--pretty`, an empty JSON output is emitted.
+- If no matching events are found, the tool prints: `No logs found for the given pattern "<pattern>" in the last 24h.` and exits successfully.
 
 ## Two-Phase Search (Extract and Re-search)
 
@@ -73,3 +75,20 @@ Examples:
 ```
 
 The second search results are output as JSON (use `--pretty` for indented output). The first search uses the same JSON format when `--pretty` is enabled.
+
+## Credential Examples
+
+- Use a shared config profile in a specific region:
+
+```
+AWS_PROFILE=dev aws-multi-log-inspector --region ap-northeast-1 --groups "/aws/lambda/app" --filter-pattern "ERROR"
+```
+
+- Use static environment credentials (access key/secret) with a region:
+
+```
+export AWS_ACCESS_KEY_ID=...
+export AWS_SECRET_ACCESS_KEY=...
+export AWS_SESSION_TOKEN=...   # optional
+aws-multi-log-inspector --region ap-northeast-1 --groups "/aws/ecs/service" --filter-pattern "WARN"
+```

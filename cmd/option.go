@@ -71,7 +71,7 @@ func CollectOptions() *Options {
 
 	flag.StringVar(&groupsCSV, "groups", groupsCSV, "Comma-separated CloudWatch log group names")
 	flag.StringVar(&region, "region", os.Getenv("AWS_REGION"), "AWS region (optional; falls back to AWS defaults)")
-	flag.StringVar(&profileFlag, "profile", "", "AWS shared config profile (or set AWS_PROFILE)")
+	flag.StringVar(&profileFlag, "profile", "", "AWS shared config profile (optional; or set AWS_PROFILE)")
 	flag.StringVar(&filterPattern, "filter-pattern", "", "CloudWatch Logs filter pattern (required)")
 	flag.StringVar(&extractFlag, "extract", "", "JMESPath extract in name=path form (single occurrence)")
 	flag.StringVar(&nextFilterFlag, "next-filter", "", "JMESPath to build second filter; requires --extract")

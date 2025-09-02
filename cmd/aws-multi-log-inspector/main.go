@@ -48,15 +48,28 @@ func main() {
 		os.Exit(2)
 	}
 
-	// Resolve profile: --profile > AWS_PROFILE; otherwise error
+	// Resolve profile: --profile > AWS_PROFILE; may be empty (env creds fallback)
 	resolvedProfile := cmd.ResolveProfile(opts.Profile)
-	if resolvedProfile == "" {
-		fmt.Fprintln(os.Stderr, "error: AWS profile required (use --profile or set AWS_PROFILE)")
-		os.Exit(1)
-	}
 
 	ctx := context.Background()
-	cw, err := client.NewCloudWatchClient(ctx, opts.Region, resolvedProfile)
+	// Build client options using functional options
+	var cwOpts []client.CloudWatchOption
+	if opts.Region != "" {
+		cwOpts = append(cwOpts, client.WithRegion(opts.Region))
+	}
+	if resolvedProfile != "" {
+		cwOpts = append(cwOpts, client.WithProfile(resolvedProfile))
+	} else {
+		// If explicit static credentials envs are present, prefer them
+		ak := os.Getenv("AWS_ACCESS_KEY_ID")
+		sk := os.Getenv("AWS_SECRET_ACCESS_KEY")
+		st := os.Getenv("AWS_SESSION_TOKEN")
+		if ak != "" && sk != "" {
+			cwOpts = append(cwOpts, client.WithStaticCredentials(ak, sk, st))
+		}
+	}
+
+	cw, err := client.NewCloudWatchClient(ctx, cwOpts...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create CloudWatch client: %v\n", err)
 		os.Exit(1)
