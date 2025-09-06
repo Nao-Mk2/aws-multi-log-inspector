@@ -92,7 +92,12 @@ func main() {
 		os.Exit(1)
 	}
 	if len(records) == 0 {
-		fmt.Printf("No logs found for the given pattern `%s` in the last 24h.\n", opts.FilterPattern)
+		// Report accurate time window in the message
+		windowMsg := "in the last 24h."
+		if opts.StartRFC3339 != "" || opts.EndRFC3339 != "" {
+			windowMsg = fmt.Sprintf("between %s and %s.", start.UTC().Format(time.RFC3339), end.UTC().Format(time.RFC3339))
+		}
+		fmt.Printf("No logs found for the given pattern `%s` %s\n", opts.FilterPattern, windowMsg)
 		return
 	}
 
