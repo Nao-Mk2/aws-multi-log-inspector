@@ -46,6 +46,7 @@ If `--pretty` is set and there are results, the first search results are output 
 ## Notes
 
 - Implementation uses `FilterLogEvents` per group and merges results, then sorts chronologically (ascending by timestamp).
+- Concurrency: searches are executed in parallel across groups (default workers: 4). On the first error, remaining requests are canceled to reduce wasted work.
 - Credentials resolution order when creating the client:
   1) Shared config/profile (with `--profile` or `AWS_PROFILE`), honoring `--region` if provided.
   2) Environment variables: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, optional `AWS_SESSION_TOKEN`; region via `--region` or `AWS_REGION`.

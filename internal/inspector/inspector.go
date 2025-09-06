@@ -39,7 +39,8 @@ func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]model.
 	startMs := in.startTime.UnixMilli()
 	endMs := in.endTime.UnixMilli()
 
-	const numWorkers = 4
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	groupChan := make(chan string, len(in.groups))
 	resultChan := make(chan []model.LogRecord, len(in.groups))
 	errorChan := make(chan error, len(in.groups))
@@ -59,7 +60,11 @@ func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]model.
 			for group := range groupChan {
 				records, err := in.client.SearchGroup(ctx, group, filterPattern, startMs, endMs)
 				if err != nil {
-					errorChan <- err
+					// Signal cancellation and report error
+					select {
+					case errorChan <- err:
+					default:
+					}
 					return
 				}
 				resultChan <- records
@@ -80,6 +85,7 @@ func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]model.
 		select {
 		case err := <-errorChan:
 			if err != nil {
+				cancel()
 				return nil, err
 			}
 		case records, ok := <-resultChan:
