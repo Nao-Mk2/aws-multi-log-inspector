@@ -90,7 +90,6 @@ func (cwc *CloudWatchClient) SearchGroup(ctx context.Context, group, filterPatte
 			StartTime:     aws.Int64(startMs),
 			EndTime:       aws.Int64(endMs),
 			NextToken:     next,
-			Interleaved:   aws.Bool(true),
 		})
 		if err != nil {
 			return nil, err
