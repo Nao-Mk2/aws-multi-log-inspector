@@ -19,6 +19,7 @@ type Options struct {
 	PrettyJSON    bool
 	StartRFC3339  string
 	EndRFC3339    string
+	Concurrency   int
 }
 
 // Validate checks relationships and required flags.
@@ -64,6 +65,7 @@ func CollectOptions() *Options {
 	var prettyJSON bool
 	var startStr string
 	var endStr string
+	var concurrency int
 
 	if v := os.Getenv("LOG_GROUP_NAMES"); v != "" {
 		groupsCSV = v
@@ -78,6 +80,7 @@ func CollectOptions() *Options {
 	flag.BoolVar(&prettyJSON, "pretty", false, "Pretty-print JSON output (applies to first and second search results)")
 	flag.StringVar(&startStr, "start", "", "Start time RFC3339 (e.g., 2025-08-30T15:04:05Z)")
 	flag.StringVar(&endStr, "end", "", "End time RFC3339 (e.g., 2025-08-31T15:04:05Z)")
+	flag.IntVar(&concurrency, "concurrency", 4, "Number of concurrent log group searches")
 	flag.Parse()
 
 	return &Options{
@@ -90,6 +93,7 @@ func CollectOptions() *Options {
 		PrettyJSON:    prettyJSON,
 		StartRFC3339:  startStr,
 		EndRFC3339:    endStr,
+		Concurrency:   concurrency,
 	}
 }
 

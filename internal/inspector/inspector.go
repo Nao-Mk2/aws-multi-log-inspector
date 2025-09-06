@@ -20,11 +20,19 @@ type Inspector struct {
 	groups    []string
 	startTime time.Time
 	endTime   time.Time
+	workers   int
 }
 
 // New creates an Inspector.
 func New(client CloudWatchLogsRetriever, groups []string, startTime, endTime time.Time) *Inspector {
-	return &Inspector{client: client, groups: groups, startTime: startTime, endTime: endTime}
+	return &Inspector{client: client, groups: groups, startTime: startTime, endTime: endTime, workers: 4}
+}
+
+// SetWorkers sets the concurrency level for searching groups. Values <= 0 are ignored.
+func (in *Inspector) SetWorkers(n int) {
+	if n > 0 {
+		in.workers = n
+	}
 }
 
 // Search finds logs matching the given filter pattern across configured groups.
@@ -38,6 +46,12 @@ func (in *Inspector) Search(ctx context.Context, filterPattern string) ([]model.
 
 	startMs := in.startTime.UnixMilli()
 	endMs := in.endTime.UnixMilli()
+
+	// Determine worker count
+	numWorkers := in.workers
+	if len(in.groups) < numWorkers {
+		numWorkers = len(in.groups)
+	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

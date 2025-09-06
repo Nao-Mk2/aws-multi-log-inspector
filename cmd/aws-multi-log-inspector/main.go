@@ -76,6 +76,15 @@ func main() {
 	}
 
 	insp := inspector.New(cw, groups, start, end)
+	// Configure concurrency (bounded by number of groups, minimum 1)
+	workers := opts.Concurrency
+	if workers <= 0 {
+		workers = 1
+	}
+	if workers > len(groups) {
+		workers = len(groups)
+	}
+	insp.SetWorkers(workers)
 	records, err := insp.Search(ctx, opts.FilterPattern)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "search error: %v\n", err)
@@ -152,6 +161,7 @@ func main() {
 
 	// Second search using the nextPattern (exactly as given), across groups
 	nextInspector := inspector.New(cw, groups, start, end)
+	nextInspector.SetWorkers(workers)
 	nextRecords, err := nextInspector.Search(ctx, nextPattern)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "second search error: %v\n", err)

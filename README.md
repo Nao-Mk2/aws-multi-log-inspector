@@ -23,7 +23,8 @@ aws-multi-log-inspector \
   [--region ap-northeast-1] \
   [--profile your-profile] \
   [--start RFC3339] [--end RFC3339] \
-  [--extract name=jmespath --next-filter jmes-or-literal] [--pretty]
+  [--extract name=jmespath --next-filter jmes-or-literal] [--pretty] \
+  [--concurrency N]
 ```
 
 - `--groups`: Comma-separated CloudWatch Log Group names. Alternatively set env `LOG_GROUP_NAMES`.
@@ -34,6 +35,7 @@ aws-multi-log-inspector \
 - `--extract`: Extract a value from the first search results using JMESPath: `name=path`. For non-JSON messages, the raw text is available as `message`.
 - `--next-filter`: Build a second filter using JMESPath evaluated against `{ "value": <extracted> }`, or treat the argument as a literal if not valid JMESPath. You can also embed the extracted value via `{{name}}`, which will be JSON-quoted safely before evaluation.
 - `--pretty`: Pretty-print JSON. Both the first and second search results are output as an indented JSON array of records.
+- `--concurrency`: Number of parallel log-group searches (default: 4). Automatically bounded by the number of groups. Increasing this may speed up queries but can increase API pressure.
 
 Output format (first search; one line per log event when not using `--pretty`):
 
