@@ -22,7 +22,14 @@ func ExtractFirstValue(events []types.FilteredLogEvent, jmes string) (string, bo
 		raw := *e.Message
 		var input any
 		var decoded any
-		if err := json.Unmarshal([]byte(raw), &decoded); err == nil {
+		// Fast-path: avoid JSON unmarshal if it clearly isn't JSON
+		if len(raw) > 0 && (raw[0] == '{' || raw[0] == '[') {
+			if err := json.Unmarshal([]byte(raw), &decoded); err == nil {
+				input = decoded
+			} else {
+				input = map[string]any{"message": raw}
+			}
+		} else if err := json.Unmarshal([]byte(raw), &decoded); err == nil {
 			input = decoded
 		} else {
 			input = map[string]any{"message": raw}

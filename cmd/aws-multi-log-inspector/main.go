@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -96,23 +97,25 @@ func main() {
 	}
 
 	// If --extract is not used, print first search results
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
 	if opts.Extract == "" {
 		// Align --pretty output format with --next-filter: emit JSON array
 		if opts.PrettyJSON {
-			b, err := json.MarshalIndent(records, "", "  ")
-			if err != nil {
+			if err := enc.Encode(records); err != nil {
 				fmt.Fprintf(os.Stderr, "encode error: %v\n", err)
 				os.Exit(1)
 			}
-			fmt.Println(string(b))
 			return
 		}
 
+		w := bufio.NewWriter(os.Stdout)
 		for _, r := range records {
 			ts := r.Timestamp.UTC().Format(time.RFC3339)
 			prefix := fmt.Sprintf("%s %s/%s", ts, r.LogGroup, r.LogStream)
-			fmt.Printf("%s %s\n", prefix, r.Message)
+			fmt.Fprintf(w, "%s %s\n", prefix, r.Message)
 		}
+		_ = w.Flush()
 		return
 	}
 
@@ -170,12 +173,10 @@ func main() {
 
 	// Output JSON array of results
 	if opts.PrettyJSON {
-		b, err := json.MarshalIndent(nextRecords, "", "  ")
-		if err != nil {
+		if err := enc.Encode(nextRecords); err != nil {
 			fmt.Fprintf(os.Stderr, "encode error: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Println(string(b))
 		return
 	}
 	if err := json.NewEncoder(os.Stdout).Encode(nextRecords); err != nil {
