@@ -154,7 +154,7 @@ func ResolveTimeWindow(startStr, endStr string, now time.Time) (time.Time, time.
 		}
 	}
 	if startStr != "" && endStr == "" {
-		end = now
+		end = start.Add(24 * time.Hour)
 	} else if startStr == "" && endStr != "" {
 		start = end.Add(-24 * time.Hour)
 	}

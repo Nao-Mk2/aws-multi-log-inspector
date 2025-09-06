@@ -31,7 +31,7 @@ aws-multi-log-inspector \
 - `--region`: AWS region (optional). Falls back to AWS SDK defaults if omitted.
 - `--profile`: AWS shared config profile (optional). If omitted, the app first uses env `AWS_PROFILE` when present; if that still doesn’t resolve, it falls back to environment credentials (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, optional `AWS_SESSION_TOKEN`) and region from `--region` or `AWS_REGION`.
 - `--filter-pattern`: Search pattern (required). See [Filter and Pattern Syntax](https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/FilterAndPatternSyntax.html).
-- `--start`/`--end`: Override the time window in RFC3339. If both omitted, last 24h is used. If only `--start` is set, the end is "now". If only `--end` is set, the start is `end-24h`.
+- `--start`/`--end`: Override the time window in RFC3339. If both omitted, last 24h is used. If only `--start` is set, the end is `start+24h`. If only `--end` is set, the start is `end-24h`.
 - `--extract`: Extract a value from the first search results using JMESPath: `name=path`. For non-JSON messages, the raw text is available as `message`.
 - `--next-filter`: Build a second filter using JMESPath evaluated against `{ "value": <extracted> }`, or treat the argument as a literal if not valid JMESPath. You can also embed the extracted value via `{{name}}`, which will be JSON-quoted safely before evaluation.
 - `--pretty`: Pretty-print JSON. Both the first and second search results are output as an indented JSON array of records.

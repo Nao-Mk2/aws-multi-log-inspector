@@ -117,7 +117,7 @@ func TestResolveTimeWindow(t *testing.T) {
 		wantErr   bool
 	}{
 		{"both-empty", "", "", fixedNow.Add(-24 * time.Hour), fixedNow, false},
-		{"only-start", "2025-08-30T10:00:00Z", "", time.Date(2025, 8, 30, 10, 0, 0, 0, time.UTC), fixedNow, false},
+		{"only-start", "2025-08-30T10:00:00Z", "", time.Date(2025, 8, 30, 10, 0, 0, 0, time.UTC), time.Date(2025, 8, 31, 10, 0, 0, 0, time.UTC), false},
 		{"only-end", "", "2025-08-31T10:00:00Z", time.Date(2025, 8, 30, 10, 0, 0, 0, time.UTC), time.Date(2025, 8, 31, 10, 0, 0, 0, time.UTC), false},
 		{"both", "2025-08-30T09:00:00Z", "2025-08-31T09:30:00Z", time.Date(2025, 8, 30, 9, 0, 0, 0, time.UTC), time.Date(2025, 8, 31, 9, 30, 0, 0, time.UTC), false},
 		{"start-after-end", "2025-08-31T12:01:00Z", "2025-08-31T12:00:00Z", time.Time{}, time.Time{}, true},
