@@ -76,39 +76,84 @@ func TestBuildCloudWatchOptions(t *testing.T) {
 	tests := []struct {
 		name    string
 		options *Options
+		env     map[string]string // key -> value, value="" means unset
 		wantLen int
 	}{
 		{
-			name:    "no region or profile",
+			name:    "no region or profile, no env",
 			options: &Options{},
+			env:     map[string]string{"AWS_PROFILE": "", "AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": ""},
 			wantLen: 0,
 		},
 		{
-			name: "with region",
-			options: &Options{
-				Region: "us-east-1",
-			},
+			name:    "with region",
+			options: &Options{Region: "us-east-1"},
+			env:     map[string]string{"AWS_PROFILE": "", "AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": ""},
 			wantLen: 1,
 		},
 		{
-			name: "with profile",
-			options: &Options{
-				Profile: "my-profile",
-			},
+			name:    "with profile flag",
+			options: &Options{Profile: "my-profile"},
+			env:     map[string]string{"AWS_PROFILE": "", "AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": ""},
 			wantLen: 1,
 		},
 		{
-			name: "with region and profile",
-			options: &Options{
-				Region:  "us-west-2",
-				Profile: "another-profile",
-			},
+			name:    "with AWS_PROFILE env",
+			options: &Options{},
+			env:     map[string]string{"AWS_PROFILE": "env-profile"},
+			wantLen: 1,
+		},
+		{
+			name:    "profile flag overrides AWS_PROFILE",
+			options: &Options{Profile: "flag-profile"},
+			env:     map[string]string{"AWS_PROFILE": "env-profile"},
+			wantLen: 1,
+		},
+		{
+			name:    "with static creds",
+			options: &Options{},
+			env:     map[string]string{"AWS_ACCESS_KEY_ID": "key", "AWS_SECRET_ACCESS_KEY": "secret"},
+			wantLen: 1,
+		},
+		{
+			name:    "profile overrides static creds",
+			options: &Options{Profile: "my-profile"},
+			env:     map[string]string{"AWS_ACCESS_KEY_ID": "key", "AWS_SECRET_ACCESS_KEY": "secret"},
+			wantLen: 1,
+		},
+		{
+			name:    "with region and profile",
+			options: &Options{Region: "us-west-2", Profile: "another-profile"},
+			env:     map[string]string{},
+			wantLen: 2,
+		},
+		{
+			name:    "with region and static creds",
+			options: &Options{Region: "us-west-2"},
+			env:     map[string]string{"AWS_ACCESS_KEY_ID": "key", "AWS_SECRET_ACCESS_KEY": "secret"},
 			wantLen: 2,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Setup env
+			for k, v := range tt.env {
+				old, had := os.LookupEnv(k)
+				if v == "" {
+					os.Unsetenv(k)
+				} else {
+					os.Setenv(k, v)
+				}
+				defer func(k, old string, had bool) {
+					if had {
+						os.Setenv(k, old)
+					} else {
+						os.Unsetenv(k)
+					}
+				}(k, old, had)
+			}
+
 			opts := tt.options.BuildCloudWatchOptions()
 			if len(opts) != tt.wantLen {
 				t.Errorf("BuildCloudWatchOptions() returned %d options, want %d", len(opts), tt.wantLen)

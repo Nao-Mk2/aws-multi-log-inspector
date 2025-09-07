@@ -196,14 +196,24 @@ func CountFlagOccurrences(flagName string) int {
 	return count
 }
 
-// BuildCloudWatchOptions creates a slice of CloudWatchOption from command-line options.
+// BuildCloudWatchOptions creates a slice of CloudWatchOption from command-line options and environment variables.
 func (o *Options) BuildCloudWatchOptions() []client.CloudWatchOption {
 	var opts []client.CloudWatchOption
 	if o.Region != "" {
 		opts = append(opts, client.WithRegion(o.Region))
 	}
-	if o.Profile != "" {
-		opts = append(opts, client.WithProfile(o.Profile))
+
+	resolvedProfile := ResolveProfile(o.Profile)
+	if resolvedProfile != "" {
+		opts = append(opts, client.WithProfile(resolvedProfile))
+	} else {
+		// Fallback to static credentials if profile is not set
+		ak := os.Getenv("AWS_ACCESS_KEY_ID")
+		sk := os.Getenv("AWS_SECRET_ACCESS_KEY")
+		st := os.Getenv("AWS_SESSION_TOKEN")
+		if ak != "" && sk != "" {
+			opts = append(opts, client.WithStaticCredentials(ak, sk, st))
+		}
 	}
 	return opts
 }
