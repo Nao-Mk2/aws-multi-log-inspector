@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/client"
 )
 
 // Options holds CLI options after parsing flags and env defaults.
@@ -192,4 +194,16 @@ func CountFlagOccurrences(flagName string) int {
 		}
 	}
 	return count
+}
+
+// BuildCloudWatchOptions creates a slice of CloudWatchOption from command-line options.
+func (o *Options) BuildCloudWatchOptions() []client.CloudWatchOption {
+	var opts []client.CloudWatchOption
+	if o.Region != "" {
+		opts = append(opts, client.WithRegion(o.Region))
+	}
+	if o.Profile != "" {
+		opts = append(opts, client.WithProfile(o.Profile))
+	}
+	return opts
 }

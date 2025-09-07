@@ -72,6 +72,51 @@ func TestParseGroupsCSV(t *testing.T) {
 	}
 }
 
+func TestBuildCloudWatchOptions(t *testing.T) {
+	tests := []struct {
+		name    string
+		options *Options
+		wantLen int
+	}{
+		{
+			name:    "no region or profile",
+			options: &Options{},
+			wantLen: 0,
+		},
+		{
+			name: "with region",
+			options: &Options{
+				Region: "us-east-1",
+			},
+			wantLen: 1,
+		},
+		{
+			name: "with profile",
+			options: &Options{
+				Profile: "my-profile",
+			},
+			wantLen: 1,
+		},
+		{
+			name: "with region and profile",
+			options: &Options{
+				Region:  "us-west-2",
+				Profile: "another-profile",
+			},
+			wantLen: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := tt.options.BuildCloudWatchOptions()
+			if len(opts) != tt.wantLen {
+				t.Errorf("BuildCloudWatchOptions() returned %d options, want %d", len(opts), tt.wantLen)
+			}
+		})
+	}
+}
+
 func TestResolveProfile(t *testing.T) {
 	tests := []struct {
 		name        string
