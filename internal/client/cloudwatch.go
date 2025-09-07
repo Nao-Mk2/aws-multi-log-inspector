@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/Nao-Mk2/aws-multi-log-inspector/internal/model"
@@ -16,6 +17,14 @@ import (
 // LogsAPI is the subset of CloudWatch Logs API we use.
 type LogsAPI interface {
 	FilterLogEvents(ctx context.Context, params *cloudwatchlogs.FilterLogEventsInput, optFns ...func(*cloudwatchlogs.Options)) (*cloudwatchlogs.FilterLogEventsOutput, error)
+}
+
+// AuthOptions provides the necessary authentication and configuration details
+// extracted from the command-line or environment, without creating a direct
+// dependency from the client package to the cmd package.
+type AuthOptions struct {
+	Region  string
+	Profile string
 }
 
 type CloudWatchClient struct {
@@ -109,4 +118,34 @@ func (cwc *CloudWatchClient) SearchGroup(ctx context.Context, group, filterPatte
 		next = out.NextToken
 	}
 	return records, nil
+}
+
+// NewCloudWatchOptions creates a slice of CloudWatchOption from AuthOptions and environment variables.
+func NewCloudWatchOptions(authOpts AuthOptions) []CloudWatchOption {
+	var opts []CloudWatchOption
+	if authOpts.Region != "" {
+		opts = append(opts, WithRegion(authOpts.Region))
+	}
+
+	resolvedProfile := resolveProfile(authOpts.Profile)
+	if resolvedProfile != "" {
+		opts = append(opts, WithProfile(resolvedProfile))
+	} else {
+		// Fallback to static credentials if profile is not set
+		ak := os.Getenv("AWS_ACCESS_KEY_ID")
+		sk := os.Getenv("AWS_SECRET_ACCESS_KEY")
+		st := os.Getenv("AWS_SESSION_TOKEN")
+		if ak != "" && sk != "" {
+			opts = append(opts, WithStaticCredentials(ak, sk, st))
+		}
+	}
+	return opts
+}
+
+// resolveProfile returns the profile from flag or AWS_PROFILE env, or empty.
+func resolveProfile(flagProfile string) string {
+	if flagProfile != "" {
+		return flagProfile
+	}
+	return os.Getenv("AWS_PROFILE")
 }

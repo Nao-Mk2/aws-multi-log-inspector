@@ -3,6 +3,7 @@ package client_test
 import (
 	"context"
 	"errors"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -169,6 +170,110 @@ func TestSearchGroup(t *testing.T) {
 				if aws.ToInt64(in.StartTime) != tt.startMs || aws.ToInt64(in.EndTime) != tt.endMs {
 					t.Fatalf("Start/End = (%d,%d), want (%d,%d)", aws.ToInt64(in.StartTime), aws.ToInt64(in.EndTime), tt.startMs, tt.endMs)
 				}
+			}
+		})
+	}
+}
+
+// helper to temporarily set env var
+func withEnv(key, val string, fn func()) {
+	old, had := os.LookupEnv(key)
+	_ = os.Setenv(key, val)
+	defer func() {
+		if had {
+			_ = os.Setenv(key, old)
+		} else {
+			_ = os.Unsetenv(key)
+		}
+	}()
+	fn()
+}
+
+func TestNewCloudWatchOptions(t *testing.T) {
+	tests := []struct {
+		name    string
+		options client.AuthOptions
+		env     map[string]string // key -> value, value="" means unset
+		wantLen int
+	}{
+		{
+			name:    "no region or profile, no env",
+			options: client.AuthOptions{},
+			env:     map[string]string{"AWS_PROFILE": "", "AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": ""},
+			wantLen: 0,
+		},
+		{
+			name:    "with region",
+			options: client.AuthOptions{Region: "us-east-1"},
+			env:     map[string]string{"AWS_PROFILE": "", "AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": ""},
+			wantLen: 1,
+		},
+		{
+			name:    "with profile flag",
+			options: client.AuthOptions{Profile: "my-profile"},
+			env:     map[string]string{"AWS_PROFILE": "", "AWS_ACCESS_KEY_ID": "", "AWS_SECRET_ACCESS_KEY": ""},
+			wantLen: 1,
+		},
+		{
+			name:    "with AWS_PROFILE env",
+			options: client.AuthOptions{},
+			env:     map[string]string{"AWS_PROFILE": "env-profile"},
+			wantLen: 1,
+		},
+		{
+			name:    "profile flag overrides AWS_PROFILE",
+			options: client.AuthOptions{Profile: "flag-profile"},
+			env:     map[string]string{"AWS_PROFILE": "env-profile"},
+			wantLen: 1,
+		},
+		{
+			name:    "with static creds",
+			options: client.AuthOptions{},
+			env:     map[string]string{"AWS_ACCESS_KEY_ID": "key", "AWS_SECRET_ACCESS_KEY": "secret"},
+			wantLen: 1,
+		},
+		{
+			name:    "profile overrides static creds",
+			options: client.AuthOptions{Profile: "my-profile"},
+			env:     map[string]string{"AWS_ACCESS_KEY_ID": "key", "AWS_SECRET_ACCESS_KEY": "secret"},
+			wantLen: 1,
+		},
+		{
+			name:    "with region and profile",
+			options: client.AuthOptions{Region: "us-west-2", Profile: "another-profile"},
+			env:     map[string]string{},
+			wantLen: 2,
+		},
+		{
+			name:    "with region and static creds",
+			options: client.AuthOptions{Region: "us-west-2"},
+			env:     map[string]string{"AWS_ACCESS_KEY_ID": "key", "AWS_SECRET_ACCESS_KEY": "secret"},
+			wantLen: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup env
+			for k, v := range tt.env {
+				old, had := os.LookupEnv(k)
+				if v == "" {
+					os.Unsetenv(k)
+				} else {
+					os.Setenv(k, v)
+				}
+				defer func(k, old string, had bool) {
+					if had {
+						os.Setenv(k, old)
+					} else {
+						os.Unsetenv(k)
+					}
+				}(k, old, had)
+			}
+
+			opts := client.NewCloudWatchOptions(tt.options)
+			if len(opts) != tt.wantLen {
+				t.Errorf("NewCloudWatchOptions() returned %d options, want %d", len(opts), tt.wantLen)
 			}
 		})
 	}

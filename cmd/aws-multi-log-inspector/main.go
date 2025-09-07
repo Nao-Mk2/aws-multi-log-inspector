@@ -50,7 +50,11 @@ func main() {
 	}
 
 	ctx := context.Background()
-	cwOpts := opts.BuildCloudWatchOptions()
+	authOpts := client.AuthOptions{
+		Region:  opts.Region,
+		Profile: opts.Profile,
+	}
+	cwOpts := client.NewCloudWatchOptions(authOpts)
 	cw, err := client.NewCloudWatchClient(ctx, cwOpts...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create CloudWatch client: %v\n", err)
