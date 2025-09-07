@@ -72,29 +72,6 @@ func TestParseGroupsCSV(t *testing.T) {
 	}
 }
 
-func TestResolveProfile(t *testing.T) {
-	tests := []struct {
-		name        string
-		flagProfile string
-		envProfile  string
-		want        string
-	}{
-		{"flag-wins", "flagP", "envP", "flagP"},
-		{"env-only", "", "envP", "envP"},
-		{"none", "", "", ""},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			withEnv("AWS_PROFILE", tt.envProfile, func() {
-				got := ResolveProfile(tt.flagProfile)
-				if got != tt.want {
-					t.Fatalf("ResolveProfile(%q)=%q, want %q", tt.flagProfile, got, tt.want)
-				}
-			})
-		})
-	}
-}
-
 func TestDefaultTimeWindow(t *testing.T) {
 	start, end := DefaultTimeWindow()
 	if !end.After(start) {

@@ -112,14 +112,6 @@ func ParseGroupsCSV(csv string) []string {
 	return groups
 }
 
-// ResolveProfile returns the profile from flag or AWS_PROFILE env, or empty.
-func ResolveProfile(flagProfile string) string {
-	if flagProfile != "" {
-		return flagProfile
-	}
-	return os.Getenv("AWS_PROFILE")
-}
-
 // DefaultTimeWindow returns the [start, end] timestamps for last 24 hours.
 func DefaultTimeWindow() (time.Time, time.Time) {
 	end := time.Now()

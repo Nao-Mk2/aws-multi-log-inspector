@@ -49,27 +49,12 @@ func main() {
 		os.Exit(2)
 	}
 
-	// Resolve profile: --profile > AWS_PROFILE; may be empty (env creds fallback)
-	resolvedProfile := cmd.ResolveProfile(opts.Profile)
-
 	ctx := context.Background()
-	// Build client options using functional options
-	var cwOpts []client.CloudWatchOption
-	if opts.Region != "" {
-		cwOpts = append(cwOpts, client.WithRegion(opts.Region))
+	authOpts := client.AuthOptions{
+		Region:  opts.Region,
+		Profile: opts.Profile,
 	}
-	if resolvedProfile != "" {
-		cwOpts = append(cwOpts, client.WithProfile(resolvedProfile))
-	} else {
-		// If explicit static credentials envs are present, prefer them
-		ak := os.Getenv("AWS_ACCESS_KEY_ID")
-		sk := os.Getenv("AWS_SECRET_ACCESS_KEY")
-		st := os.Getenv("AWS_SESSION_TOKEN")
-		if ak != "" && sk != "" {
-			cwOpts = append(cwOpts, client.WithStaticCredentials(ak, sk, st))
-		}
-	}
-
+	cwOpts := client.NewCloudWatchOptions(authOpts)
 	cw, err := client.NewCloudWatchClient(ctx, cwOpts...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to create CloudWatch client: %v\n", err)
